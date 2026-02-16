@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: 16 185 129;
+    --primary-dark: 5 150 105;
+    --primary-light: 52 211 153;
+    
+    /* تم روشن */
+    --bg-primary: 255 255 255;
+    --bg-secondary: 243 244 246;
+    --text-primary: 17 24 39;
+    --text-secondary: 75 85 99;
+    --border: 229 231 235;
+  }
+
+  .dark {
+    --bg-primary: 17 24 39;
+    --bg-secondary: 31 41 55;
+    --text-primary: 255 255 255;
+    --text-secondary: 156 163 175;
+    --border: 55 65 81;
+  }
+
+  body {
+    @apply antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 
+                 'Helvetica Neue', 'IranSans', sans-serif;
+  }
+
+  /* استایل اسکرول بار */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-200 dark:bg-gray-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-emerald-500/50 rounded-full hover:bg-emerald-500 transition-colors;
+  }
+}
+
+@layer components {
+  /* کلاس‌های شیشه‌ای */
+  .glass {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl 
+           border border-gray-200/50 dark:border-gray-700/50
+           shadow-lg;
+  }
+
+  .glass-card {
+    @apply bg-white/50 dark:bg-gray-800/50 backdrop-blur-lg
+           border border-gray-200/30 dark:border-gray-700/30
+           shadow-xl hover:shadow-2xl transition-all duration-300;
+  }
+
+  /* کارت‌ها */
+  .stat-card {
+    @apply glass-card rounded-2xl p-6;
+  }
+
+  /* دکمه‌ها */
+  .btn-primary {
+    @apply bg-emerald-500 hover:bg-emerald-600 text-white 
+           px-4 py-2 rounded-lg transition-all duration-200
+           hover:shadow-lg hover:shadow-emerald-500/25;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600
+           text-gray-800 dark:text-white px-4 py-2 rounded-lg transition-colors;
+  }
+
+  /* فرم‌ها */
+  .input {
+    @apply bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600
+           rounded-lg px-4 py-2 text-gray-900 dark:text-white
+           focus:outline-none focus:ring-2 focus:ring-emerald-500/50
+           transition-all;
+  }
+}
+
+/* فونت فارسی */
+@font-face {
+  font-family: 'IranSans';
+  src: url('/fonts/IRANSansWeb.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IranSans';
+  src: url('/fonts/IRANSansWeb_Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* انیمیشن‌ها */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-x-reverse: 1;
+  }
+}

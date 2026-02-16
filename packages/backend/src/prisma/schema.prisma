@@ -1,0 +1,163 @@
+// packages/backend/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  fullName      String
+  role          Role      @default(USER)
+  companyId     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLogin     DateTime?
+  twoFactorSecret String?
+  isActive      Boolean   @default(true)
+
+  company       Company?  @relation(fields: [companyId], references: [id])
+  accounts      Account[]
+  transactions  Transaction[]
+  invoices      Invoice[]
+}
+
+model Company {
+  id            String    @id @default(cuid())
+  name          String
+  taxNumber     String?
+  address       String?
+  phone         String?
+  email         String?
+  logo          String?
+
+  users         User[]
+  accounts      Account[]
+  fiscalYear    DateTime?
+  subscription  Subscription?
+}
+
+model Account {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  name          String
+  type          AccountType
+  balance       Float     @default(0)
+  currency      String    @default("IRR")
+  isActive      Boolean   @default(true)
+
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+
+  debitEntries  Entry[]   @relation("debit")
+  creditEntries Entry[]   @relation("credit")
+}
+
+model Transaction {
+  id            String    @id @default(cuid())
+  date          DateTime
+  description   String
+  reference     String?
+  status        Status    @default(PENDING)
+
+  entries       Entry[]
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  createdById   String
+  createdBy     User      @relation(fields: [createdById], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Entry {
+  id            String    @id @default(cuid())
+  amount        Float
+  type          EntryType
+
+  accountId     String
+  account       Account   @relation(fields: [accountId], references: [id])
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+}
+
+model Invoice {
+  id            String    @id @default(cuid())
+  number        String    @unique
+  date          DateTime
+  dueDate       DateTime
+  customerName  String
+  customerTaxId String?
+
+  items         Json
+  subtotal      Float
+  taxRate       Float     @default(9)
+  taxAmount     Float
+  discount      Float     @default(0)
+  total         Float
+
+  status        InvoiceStatus @default(DRAFT)
+  paidAmount    Float     @default(0)
+
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  createdById   String
+  createdBy     User      @relation(fields: [createdById], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Subscription {
+  id            String    @id @default(cuid())
+  companyId     String    @unique
+  company       Company   @relation(fields: [companyId], references: [id])
+  stripeSubscriptionId String
+  status        String
+  planId        String
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  ACCOUNTANT
+  USER
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum Status {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum EntryType {
+  DEBIT
+  CREDIT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}

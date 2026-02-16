@@ -1,0 +1,264 @@
+// packages/backend/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================ مدل‌های اصلی ================
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  fullName        String
+  role            Role      @default(USER)
+  companyId       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLogin       DateTime?
+  twoFactorSecret String?
+  isActive        Boolean   @default(true)
+
+  company      Company?      @relation(fields: [companyId], references: [id])
+  accounts     Account[]
+  transactions Transaction[]
+  invoices     Invoice[]
+}
+
+model Company {
+  id        String  @id @default(cuid())
+  name      String
+  taxNumber String?
+  address   String?
+  phone     String?
+  email     String?
+  logo      String?
+
+  users        User[]
+  accounts     Account[]
+  transactions Transaction[]
+  invoices     Invoice[]
+  employees    Employee[] // ارتباط با کارمندان
+  fiscalYear   DateTime?
+  subscription Subscription?
+}
+
+model Account {
+  id       String      @id @default(cuid())
+  code     String      @unique
+  name     String
+  type     AccountType
+  balance  Float       @default(0)
+  currency String      @default("IRR")
+  isActive Boolean     @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id])
+
+  entries Entry[]
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  date        DateTime
+  description String
+  reference   String?
+  status      Status   @default(PENDING)
+
+  entries     Entry[]
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id])
+  createdById String
+  createdBy   User    @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Entry {
+  id     String    @id @default(cuid())
+  amount Float
+  type   EntryType
+
+  accountId     String
+  account       Account     @relation(fields: [accountId], references: [id])
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([accountId, transactionId])
+  @@index([accountId])
+  @@index([transactionId])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  number        String   @unique
+  date          DateTime
+  dueDate       DateTime
+  customerName  String
+  customerTaxId String?
+
+  items     Json
+  subtotal  Float
+  taxRate   Float @default(9)
+  taxAmount Float
+  discount  Float @default(0)
+  total     Float
+
+  status     InvoiceStatus @default(DRAFT)
+  paidAmount Float         @default(0)
+
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id])
+  createdById String
+  createdBy   User    @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  companyId            String   @unique
+  company              Company  @relation(fields: [companyId], references: [id])
+  stripeSubscriptionId String
+  status               String
+  planId               String
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ================ مدل‌های منابع انسانی (HR) ================
+
+model Employee {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  nationalId   String   @unique
+  employeeCode String   @unique
+  position     String
+  department   String
+  baseSalary   Float
+  hireDate     DateTime
+  isActive     Boolean  @default(true)
+  bankAccount  String?
+  phoneNumber  String?
+  email        String?
+  address      String?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  payrolls    Payroll[]
+  attendances Attendance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payroll {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  month Int
+  year  Int
+
+  baseSalary Float
+  overtime   Float @default(0)
+  bonus      Float @default(0)
+  deductions Float @default(0)
+  tax        Float @default(0)
+  insurance  Float @default(0)
+  netSalary  Float
+
+  status PayrollStatus @default(PENDING)
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, month, year])
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  date        DateTime
+  checkIn     DateTime?
+  checkOut    DateTime?
+  hoursWorked Float?
+  overtime    Float?
+  status      AttendanceStatus @default(PRESENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, date])
+}
+
+// ================ enumها ================
+
+enum Role {
+  ADMIN
+  MANAGER
+  ACCOUNTANT
+  USER
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum Status {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum EntryType {
+  DEBIT
+  CREDIT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PayrollStatus {
+  PENDING
+  PROCESSED
+  PAID
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  HOLIDAY
+  SICK_LEAVE
+  VACATION
+}
